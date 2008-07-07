@@ -11,6 +11,7 @@ require 'rtmilk'
 
 require 'osx/cocoa'
 
+$ONLINE = true
 
 class RTM::API
   
@@ -33,8 +34,10 @@ class Controller < OSX::NSObject
   include OSX
 
   ib_outlet :mainWindow, :authWindow
+  ib_outlet :tableTasks
   
-  ib_outlet :newTask
+  ib_outlet :inputNewTask, :buttonLists, :buttonAddTask, :buttonAuth
+  
   ib_outlet :lists
   
   API_KEY       = 'f777b4bcbda99484bd823c9c301e6dca'
@@ -43,10 +46,10 @@ class Controller < OSX::NSObject
   # like initialized, but will be called after Nib is loaded
   def awakeFromNib
     # provide APP_KEY and SHARED_SECRET for RTM::API
-    RTM::API.init(API_KEY, SHARED_SECRET)
+    RTM::API.init(API_KEY, SHARED_SECRET) if $ONLINE
     
     # get frob
-    @frob = RTM::Auth::GetFrob.new.invoke
+    @frob = RTM::Auth::GetFrob.new.invoke if $ONLINE
     
   end
   
@@ -72,50 +75,105 @@ class Controller < OSX::NSObject
     sheet.orderOut(nil)
   end
   
+  def authInBrowser
+    # get auth url for read
+    url = RTM::API.get_auth_url('read', @frob) if $ONLINE
+    puts url
+    
+    `open '#{url}'` if $ONLINE
+  end
+  
   def authNextButton
     get_token
-    if RTM::API.token
+    if !$ONLINE || RTM::API.token
+      # close modal window
       NSApp.endSheet_returnCode(@authWindow, 0)
+      # show hidden elements
+      hide_or_show_various_elements
       
       # TODO move lists elsewhere
-      lists = RTM::List.alive_all
-      lists.each { |l| @lists.addItemWithTitle(l.name) }
+      if $ONLINE
+        lists = RTM::List.alive_all
+        lists.each do |l|
+          @lists.addItemWithTitle(l.name)
+          @lists.lastItem.setTag(l.id)
+        end
+      else
+        lists = [{:name => "Offline"}]
+        lists.each do |l|
+          @lists.addItemWithTitle(l[:name])
+        end
+      end
+      
+      if $ONLINE
+        @current_tasks = RTM::Task.find_all({})
+      else
+        @current_tasks = [OfflineTask.new("testname", [OfflineChunk.new("#{Time.now}", 2, "#{Time.now + 2400}")])]
+      end
+      
+      @tableTasks.reloadData
     else
       authInBrowser
     end
   end
   
-  def authInBrowser
-    # get auth url for read
-    url = RTM::API.get_auth_url('read', @frob)
-    puts url
-    
-    `open '#{url}'`
+  def hide_or_show_various_elements
+    @buttonAuth.setHidden(true)
+    @tableTasks.setHidden(false)
+    @inputNewTask.setHidden(false)
+    @buttonLists.setHidden(false)
+    @buttonAddTask.setHidden(false)
   end
   
   def get_token
-    res = RTM::Auth::GetToken.new(@frob).invoke
-    token = res[:token]
-    RTM::API.token = token
+    if $ONLINE
+      res = RTM::Auth::GetToken.new(@frob).invoke
+      token = res[:token]
+      RTM::API.token = token
+    end
   end
   
   def switchList
     menu_item = @lists.selectedItem
     @lists.selectItem(menu_item)
     
-    if menu_item.title.to_s == "All"
+    if menu_item.title == "All"
       # select all lists
+      @current_tasks = RTM::Task.find_all({})
     else
       # only this list
+      @current_tasks = RTM::Task.find_all({:list => menu_item.tag})
     end
+    @tableTasks.reloadData
   end
   
   def addTask
-    p @newTask.stringValue
+    if @inputNewTask.stringValue.to_s.size > 0
+      if $ONLINE
+        RTM::Tasks::Add.new(RTM::API.token, RTM::Timlines::Timeline.new(RTM::API.token), @lists.selectedItem.tag, @inputNewTask.stringValue.to_s).invoke
+      else
+        @current_tasks << OfflineTask.new(@inputNewTask.stringValue, [OfflineChunk.new("", 0, "")])
+      end
+      
+      @tableTasks.reloadData
+    end
   end
 
   def tableView_setObjectValue_forTableColumn_row(table, value, column, row)
-    p value
+    case column.identifier
+    when "check"
+      if "1" == value.to_s
+        @current_tasks[row].chunks.first.completed = Time.now.to_s
+      else
+        @current_tasks[row].chunks.first.completed = ""
+      end
+    when "prio"
+      @current_tasks[row].chunks.first.priority = value.to_s
+    when "name"
+      @current_tasks[row].name = value.to_s
+    when "duedate"
+      @current_tasks[row].chunks.first.due = value.to_s
+    end
   end
 
 	###
@@ -127,7 +185,11 @@ class Controller < OSX::NSObject
   #  class.
   ###
   def numberOfRowsInTableView(table)
-  	2
+  	if @current_tasks
+  	  @current_tasks.size
+  	else
+  	  0
+	  end
   end
 
   ###
@@ -140,7 +202,42 @@ class Controller < OSX::NSObject
   #  data source for the NSTableView class.
   ###
   def tableView_objectValueForTableColumn_row(table, column, row)
-    Time.now.to_s
+    case column.identifier
+    when "check"
+      @current_tasks[row].chunks.first.completed.size > 0 ? true : false
+    when "prio"
+      @current_tasks[row].chunks.first.priority.to_i
+    when "name"
+      @current_tasks[row].name
+    when "duedate"
+      @current_tasks[row].chunks.first.due
+    end
   end
 
+end
+
+class OfflineTask
+  
+  attr_accessor :chunks
+  attr_accessor :name
+  
+  def initialize(name, chunks)
+    @name = name
+    @chunks = chunks
+  end
+  
+end
+
+class OfflineChunk
+  
+  attr_accessor :completed
+  attr_accessor :priority
+  attr_accessor :due
+  
+  def initialize(completed, priority, due)
+    @completed = completed
+    @priority = priority
+    @due = due
+  end
+  
 end
