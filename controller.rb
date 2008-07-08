@@ -9,9 +9,11 @@
 require 'rubygems' # TODO remove and include ext libs into distribution
 require 'rtmilk'
 
+require 'model/store'
+
 require 'osx/cocoa'
 
-$ONLINE = true
+$ONLINE = false
 
 class RTM::API
   
@@ -77,7 +79,7 @@ class Controller < OSX::NSObject
   
   def authInBrowser
     # get auth url for read
-    url = RTM::API.get_auth_url('read', @frob) if $ONLINE
+    url = RTM::API.get_auth_url('delete', @frob) if $ONLINE
     puts url
     
     `open '#{url}'` if $ONLINE
@@ -143,26 +145,36 @@ class Controller < OSX::NSObject
     else
       # only this list
       @current_tasks = RTM::Task.find_all({:list => menu_item.tag})
-    end
+    end if $ONLINE
+    
     @tableTasks.reloadData
   end
   
   def addTask
     if @inputNewTask.stringValue.to_s.size > 0
       if $ONLINE
-        RTM::Tasks::Add.new(RTM::API.token, RTM::Timlines::Timeline.new(RTM::API.token), @lists.selectedItem.tag, @inputNewTask.stringValue.to_s).invoke
+        timeline = RTM::Timeline.new(RTM::API.token)
+        RTM::Tasks::Add.new(RTM::API.token, timeline, @lists.selectedItem.tag, @inputNewTask.stringValue.to_s).invoke
       else
         @current_tasks << OfflineTask.new(@inputNewTask.stringValue, [OfflineChunk.new("", 0, "")])
       end
       
-      @tableTasks.reloadData
+      switchList
     end
+  end
+  
+  def deleteTasks
+    @tableTasks.selectedRowIndexes.to_a.each do |i|
+      @current_tasks[i].delete
+    end
+    
+    switchList
   end
 
   def tableView_setObjectValue_forTableColumn_row(table, value, column, row)
     case column.identifier
     when "check"
-      if "1" == value.to_s
+      if "1" == value.to_s # 1 => true (NSCFBoolean)
         @current_tasks[row].chunks.first.completed = Time.now.to_s
       else
         @current_tasks[row].chunks.first.completed = ""
