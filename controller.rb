@@ -6,16 +6,6 @@
 #  Copyright (c) 2008 Fabian Buch. All rights reserved.
 #
 
-
-# model classes
-require 'model/store'
-require 'model/list.rb'
-require 'model/task.rb'
-
-# stores
-require 'model/dummy/store'
-require 'model/rtm/store'
-
 require 'osx/cocoa'
 
 $ONLINE = false

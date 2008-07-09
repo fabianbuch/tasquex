@@ -10,24 +10,11 @@ module TasqueX
     attr_accessor :list_id
     
     def <=>(other)
-      p "#{name} other: #{other.name}"
-      if completed && other.completed && due && other.due && priority && other.priority && id && other.id
-        completed <=> other.completed &&
-        due <=> other.due &&
-        priority <=> other.priority &&
-        id <=> other.id
-      elsif due && other.due && priority && other.priority && id && other.id
-        due <=> other.due &&
-        priority <=> other.priority &&
-        id <=> other.id
-      elsif priority && other.priority && id && other.id
-        priority <=> other.priority &&
-        id <=> other.id
-      elsif id && other.id
-        id <=> other.id
-      else
-        name <=> other.name
-      end
+      completed.to_s.size <=> other.completed.to_s.size ||
+      priority.to_i <=> other.priority.to_i ||
+      due.to_s <=> other.due.to_s ||
+      id.to_s <=> other.id.to_s ||
+      name.to_s <=> other.name.to_s
     end
     
   end
