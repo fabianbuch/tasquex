@@ -1,5 +1,0 @@
-/* Localized versions of Info.plist keys */
-
-CFBundleName = "tasqueX";
-CFBundleGetInfoString = "tasqueX version 0.1, Copyright 2008 Fabian Buch.";
-NSHumanReadableCopyright = "Copyright 2008 Fabian Buch.";
