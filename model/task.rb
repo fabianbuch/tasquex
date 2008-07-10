@@ -15,7 +15,7 @@ module TasqueX
       if (completed.to_s.size <=> other.completed.to_s.size) != 0
         completed.to_s.size <=> other.completed.to_s.size
       elsif due && other.due && ((due.to_s <=> other.due.to_s) != 0)
-        if due.empty? && other.due.empty?
+        if due.to_s.empty? || other.due.to_s.empty?
           -1
         else
           Date.parse(due.to_s) <=> Date.parse(other.due.to_s)
