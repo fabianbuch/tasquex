@@ -14,7 +14,7 @@ module TasqueX
       task1.id = 1
       task1.name = "Dummy Task"
       task1.priority = "2"
-      task1.due = "#{Time.now + 2400}"
+      task1.due = "#{Time.now + 24400}"
       task1.list_id = 1
       
       @tasks << task1
@@ -23,7 +23,7 @@ module TasqueX
       task2.id = 2
       task2.name = "Test TasqueX"
       task2.completed = "#{Time.now}"
-      task2.due = "#{Time.now + 4400}"
+      task2.due = "#{Time.now + 24400}"
       task2.list_id = 2
       
       @tasks << task2
@@ -32,10 +32,19 @@ module TasqueX
       task3.id = 3
       task3.name = "buy milk"
       task3.completed = "#{Time.now - 2000}"
-      task3.due = "#{Time.now + 1400}"
+      task3.due = "#{Time.now + 11400}"
       task3.list_id = 2
       
       @tasks << task3
+      
+      task4 = Task.new
+      task4.id = 3
+      task4.name = "kiss wife"
+      task4.priority = 3
+      task4.due = "#{Time.now - 121400}"
+      task4.list_id = 2
+      
+      @tasks << task4
     end
     
     def authenticate
