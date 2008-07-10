@@ -59,7 +59,7 @@ module TasqueX
     
     def authenticated?
       
-      if @authenticated && !@token_persisted && !RTM::API.token
+      if @authenticated && !@token_persisted && !(RTM::API.token rescue nil)
         res = RTM::Auth::GetToken.new(@frob).invoke
         RTM::API.token = res[:token]
       else

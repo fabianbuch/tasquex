@@ -7,17 +7,18 @@
 #
 
 require 'osx/cocoa'
+require 'date'
 
-$ONLINE = false
-
+$ONLINE = true
 
 class Controller < OSX::NSObject
   include OSX
 
-  ib_outlet :mainWindow, :authWindow
+  ib_outlet :mainWindow, :authWindow, :prefsWindow
   ib_outlet :tableTasks
   
   ib_outlet :inputNewTask, :buttonLists, :buttonAddTask, :buttonAuth
+  ib_outlet :prefsButtonAuthCache, :prefsButtonStore
   
   ib_outlet :lists
   
@@ -95,7 +96,6 @@ class Controller < OSX::NSObject
     @buttonAddTask.setHidden(false)
   end
   
-  
   def init_lists
     
     lists = @store.all_lists
@@ -141,6 +141,22 @@ class Controller < OSX::NSObject
     end
     
     switchList
+  end
+
+  def openPrefsWindow
+    NSApp.beginSheet_modalForWindow_modalDelegate_didEndSelector_contextInfo(@prefsWindow, @mainWindow, self, :sheetDidEnd_returnCode_contextInfo, nil)
+  end
+  
+  def closePrefsWindow
+    NSApp.endSheet_returnCode(@prefsWindow, 0)
+  end
+  
+  def prefsSwitchStore
+    p "ERROR: 'prefsSwitchStore' to be implemented!"
+  end
+  
+  def prefsToggleCacheAuth
+    p "ERROR: 'prefsToggleCacheAuth' to be implemented!"
   end
 
   def tableView_setObjectValue_forTableColumn_row(table, value, column, row)
@@ -197,7 +213,16 @@ class Controller < OSX::NSObject
     when "name"
       @current_tasks[row].name
     when "duedate"
-      @current_tasks[row].due
+      duedate = Date.parse(@current_tasks[row].due.to_s) rescue ""
+      if duedate == Date.parse(Time.now.to_s)
+        "Today"
+      elsif duedate == Date.parse(Time.now.to_s) + 1
+        "Tomorrow"
+      elsif duedate != "" && duedate < Date.parse(Time.now.to_s)
+        "Overdue"
+      else
+        duedate.to_s
+      end
     end
   end
 

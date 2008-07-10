@@ -14,8 +14,12 @@ module TasqueX
     def <=>(other)
       if (completed.to_s.size <=> other.completed.to_s.size) != 0
         completed.to_s.size <=> other.completed.to_s.size
-      elsif due && other.due && (due.to_s <=> other.due.to_s) != 0
-        Date.parse(due.to_s) <=> Date.parse(other.due.to_s)
+      elsif due && other.due && ((due.to_s <=> other.due.to_s) != 0)
+        if due.empty? && other.due.empty?
+          -1
+        else
+          Date.parse(due.to_s) <=> Date.parse(other.due.to_s)
+        end
       elsif (priority.to_i <=> other.priority.to_i) != 0
         -(priority.to_i <=> other.priority.to_i)
       elsif (id.to_s <=> other.id.to_s) != 0
