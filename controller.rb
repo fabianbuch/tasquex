@@ -9,8 +9,6 @@
 require 'osx/cocoa'
 require 'date'
 
-$ONLINE = true
-
 class Controller < OSX::NSObject
   include OSX
 
@@ -22,13 +20,44 @@ class Controller < OSX::NSObject
   
   ib_outlet :lists
   
+  def initialize
+    setupDefaults
+  end
+  
+  def setupDefaults
+      # load the default values for the user defaults
+      userDefaultsValuesPath = NSBundle.mainBundle.pathForResource_ofType(
+        "UserDefaults", "plist"
+      )
+      userDefaultsValuesDict = NSDictionary.dictionaryWithContentsOfFile(
+        userDefaultsValuesPath
+      )
+
+      # set them in the standard user defaults
+      NSUserDefaults.standardUserDefaults.registerDefaults(
+        userDefaultsValuesDict
+      )
+
+      # Set the initial values in the shared user defaults controller
+      NSUserDefaultsController.sharedUserDefaultsController.setInitialValues(
+        'authCache' => false,
+        'store' => 'Dummy Backend',
+        'rtmtoken' => ''
+      )
+  end
+  
   # like initialized, but will be called after Nib is loaded
   def awakeFromNib
+    store = NSUserDefaultsController.sharedUserDefaultsController.values.valueForKey('store').to_s
     
-    # to-be-improved (make configurable)
-    if $ONLINE
+    case store
+    when 'Remember The Milk'
       @store = TasqueX::RtmStore.new
-    else
+    when 'Dummy Backend'
+      @store = TasqueX::DummyStore.new
+    when 'SQLite Backend'
+      raise "ERROR: SQLite-Backend not yet implemented!"
+    else # use 'Dummy Backend'
       @store = TasqueX::DummyStore.new
     end
     
@@ -37,12 +66,9 @@ class Controller < OSX::NSObject
   def authenticate
     
     unless @store.authenticated?
-      
       # open window sheet for authentication
       openAuthSheet
-      
     else
-      
       # show hidden elements
       hide_or_show_various_elements
       
@@ -99,7 +125,6 @@ class Controller < OSX::NSObject
   def init_lists
     
     lists = @store.all_lists
-    p lists
     lists.each do |list|
       @lists.addItemWithTitle(list.name)
       @lists.lastItem.setTag(list.id)
@@ -151,14 +176,6 @@ class Controller < OSX::NSObject
     NSApp.endSheet_returnCode(@prefsWindow, 0)
   end
   
-  def prefsSwitchStore
-    p "ERROR: 'prefsSwitchStore' to be implemented!"
-  end
-  
-  def prefsToggleCacheAuth
-    p "ERROR: 'prefsToggleCacheAuth' to be implemented!"
-  end
-
   def tableView_setObjectValue_forTableColumn_row(table, value, column, row)
     case column.identifier
     when "check"
