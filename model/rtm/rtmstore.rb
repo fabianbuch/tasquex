@@ -1,11 +1,12 @@
 require 'rubygems' # TODO remove and include ext libs into distribution
 require 'rtmilk'
 
-class RTM::API
+module RTM
+
+class API
   
   # invoke a method
   def invoke
-    p make_url
     # sleep one second to not get banned from RTM
     sleep 1 if defined?(@@last_request) && (Time.now - @@last_request) < 1
     response = Net::HTTP.get(RTM_URI, make_url)
@@ -18,7 +19,7 @@ class RTM::API
   
 end
 
-class RTM::Task
+class Task
   
   def self.find_by_id(list_id, id)
     all_tasks(list_id).find do |task|
@@ -27,6 +28,93 @@ class RTM::Task
   end
   
 end
+
+module Tasks
+
+  class SetName < RTM::API
+    def parse_result(result)
+      super
+      [result['list'].first['taskseries'].first, result['transaction'].first]
+    end
+    
+    def initialize(token, timeline, list_id, taskseries_id, chunk_id, name)
+      super 'rtm.tasks.setName', token
+      @param[:timeline] = timeline
+      @param[:list_id] = list_id
+      @param[:taskseries_id] = taskseries_id
+      @param[:task_id] = chunk_id
+      @param[:name] = name
+    end
+  end # SetName
+
+  class SetDueDate < RTM::API
+    def parse_result(result)
+      super
+      [result['list'].first['taskseries'].first, result['transaction'].first]
+    end
+    
+    def initialize(token, timeline, list_id, taskseries_id, chunk_id, due, has_due_time = nil, parse = nil)
+      super 'rtm.tasks.setDueDate', token
+      @param[:timeline] = timeline
+      @param[:list_id] = list_id
+      @param[:taskseries_id] = taskseries_id
+      @param[:task_id] = chunk_id
+      @param[:due] = due
+      @param[:has_due_time] = has_due_time if has_due_time
+      @param[:parse] = parse ? parse : 1
+    end
+  end # SetDueDate
+
+  class SetPriority < RTM::API
+    def parse_result(result)
+      super
+      [result['list'].first['taskseries'].first, result['transaction'].first]
+    end
+    
+    def initialize(token, timeline, list_id, taskseries_id, chunk_id, priority)
+      super 'rtm.tasks.setPriority', token
+      @param[:timeline] = timeline
+      @param[:list_id] = list_id
+      @param[:taskseries_id] = taskseries_id
+      @param[:task_id] = chunk_id
+      @param[:priority] = priority
+    end
+  end # SetPriority
+
+  class Complete < RTM::API
+    def parse_result(result)
+      super
+      [result['list'].first['taskseries'].first, result['transaction'].first]
+    end
+    
+    def initialize(token, timeline, list_id, taskseries_id, chunk_id)
+      super 'rtm.tasks.complete', token
+      @param[:timeline] = timeline
+      @param[:list_id] = list_id
+      @param[:taskseries_id] = taskseries_id
+      @param[:task_id] = chunk_id
+    end
+  end # Complete
+
+  class Uncomplete < RTM::API
+    def parse_result(result)
+      super
+      [result['list'].first['taskseries'].first, result['transaction'].first]
+    end
+    
+    def initialize(token, timeline, list_id, taskseries_id, chunk_id)
+      super 'rtm.tasks.uncomplete', token
+      @param[:timeline] = timeline
+      @param[:list_id] = list_id
+      @param[:taskseries_id] = taskseries_id
+      @param[:task_id] = chunk_id
+    end
+  end # Uncomplete
+
+
+end # Tasks
+
+end # RTM
 
 module TasqueX
   
@@ -37,7 +125,7 @@ module TasqueX
     
     def initialize
       @authenticated = false
-      @token_persisted = false # TODO read persisted token
+      @persisted_token =  OSX::NSUserDefaultsController.sharedUserDefaultsController.values.valueForKey('rtmtoken').to_s
       
       # provide APP_KEY and SHARED_SECRET for RTM::API
       RTM::API.init(API_KEY, SHARED_SECRET, {:token => @token_persisted})
@@ -47,21 +135,24 @@ module TasqueX
     end
     
     def authenticate
-      # get auth url for read
-      url = RTM::API.get_auth_url('delete', @frob)
-      puts url
-
-      # open auth url in browser
-      `open '#{url}'`
+      if @persisted_token.empty?
+        # get auth url for read
+        url = RTM::API.get_auth_url('delete', @frob)
+        
+        # open auth url in browser
+        `open '#{url}'`
+      end
       
       @authenticated = true
     end
     
     def authenticated?
-      
-      if @authenticated && !@token_persisted && !(RTM::API.token rescue nil)
+      if @authenticated && @persisted_token.empty? && !(RTM::API.token rescue nil)
         res = RTM::Auth::GetToken.new(@frob).invoke
         RTM::API.token = res[:token]
+        persist_token(res[:token])
+      elsif !@persisted_token.empty?
+        RTM::API.token = @persisted_token
       else
         return false
       end
@@ -69,11 +160,16 @@ module TasqueX
       @authenticated = RTM::API.token ? true : false
     end
     
+    def persist_token(token)
+        OSX::NSUserDefaultsController.sharedUserDefaultsController.values.setValue_forKey(
+          token.to_s, 'rtmtoken' 
+        )
+    end
+    
     def all_lists
       lists = []
       
-      RTM::List.alive_all do |list|
-        p list
+      RTM::List.alive_all.each do |list|
         lists << List.new(list.id, list.name)
       end
       
@@ -88,6 +184,7 @@ module TasqueX
         
         task.name = r_task.name
         task.id = r_task.id
+        task.chunk_id = r_task.chunks.first.id
         task.priority = r_task.chunks.first.priority.to_i
         task.due = r_task.chunks.first.due
         task.completed = r_task.chunks.first.completed
@@ -107,6 +204,7 @@ module TasqueX
         
         task.name = r_task.name
         task.id = r_task.id
+        task.chunk_id = r_task.chunks.first.id
         task.priority = r_task.chunks.first.priority.to_i
         task.due = r_task.chunks.first.due
         task.completed = r_task.chunks.first.completed
@@ -138,7 +236,15 @@ module TasqueX
     
     def edit_task(task)
       if task.class == Task
-        p "ERROR: edit_task(task) not implemented"
+        timeline = RTM::Timeline.new(RTM::API.token)
+        RTM::Tasks::SetName.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.name).invoke
+        RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due).invoke
+        RTM::Tasks::SetPriority.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.priority).invoke
+        if task.completed.to_s.empty?
+          RTM::Tasks::Uncomplete.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id).invoke
+        else
+          RTM::Tasks::Complete.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id).invoke
+        end
       else
         raise ArgumentError.new("should be of Type 'Task'")
       end
