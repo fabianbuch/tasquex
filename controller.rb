@@ -121,6 +121,7 @@ class Controller < OSX::NSObject
     @inputNewTask.setHidden(false)
     @buttonLists.setHidden(false)
     @buttonAddTask.setHidden(false)
+    @buttonComplete.setHidden(false)
   end
   
   def init_lists
