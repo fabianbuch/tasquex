@@ -16,6 +16,7 @@ class Controller < OSX::NSObject
   ib_outlet :tableTasks
   
   ib_outlet :inputNewTask, :buttonLists, :buttonAddTask, :buttonAuth
+  ib_outlet :buttonComplete
   ib_outlet :prefsButtonAuthCache, :prefsButtonStore
   
   ib_outlet :lists
@@ -133,7 +134,8 @@ class Controller < OSX::NSObject
   end
   
   def init_tasks
-    @current_tasks = @store.all_tasks.sort
+    list_id = @lists.selectedItem.tag.to_i==0 ? nil : @lists.selectedItem.tag
+    @current_tasks = @store.all_incomplete_tasks(list_id).sort
     
     @tableTasks.reloadData
   end
@@ -144,10 +146,23 @@ class Controller < OSX::NSObject
     
     if menu_item.tag.to_i == 0
       # select all lists
-      @current_tasks = @store.all_tasks.sort
+      @current_tasks = @store.all_incomplete_tasks.sort
     else
       # only this list
-      @current_tasks = @store.all_tasks_in_list(menu_item.tag).sort
+      @current_tasks = @store.all_incomplete_tasks(menu_item.tag).sort
+    end
+    
+    @tableTasks.reloadData
+  end
+  
+  def toggleShowComplete
+    list_id = @lists.selectedItem.tag.to_i==0 ? nil : @lists.selectedItem.tag
+    if @buttonComplete.title.to_s == "Complete"
+      @current_tasks = @store.all_incomplete_tasks(list_id).sort
+      @buttonComplete.title = "Incomplete"
+    else
+      @current_tasks = @store.all_complete_tasks(list_id).sort
+      @buttonComplete.title = "Complete"
     end
     
     @tableTasks.reloadData

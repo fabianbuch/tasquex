@@ -177,23 +177,7 @@ module TasqueX
     end
     
     def all_tasks
-      tasks = []
-      
-      RTM::Task.find_all({}).each do |r_task|
-        task = Task.new
-        
-        task.name = r_task.name
-        task.id = r_task.id
-        task.chunk_id = r_task.chunks.first.id
-        task.priority = r_task.chunks.first.priority.to_i
-        task.due = r_task.chunks.first.due
-        task.completed = r_task.chunks.first.completed
-        task.list_id = r_task.list
-        
-        tasks << task
-      end
-      
-      tasks
+      all_tasks_in_list(nil)
     end
     
     def all_tasks_in_list(list_id)
@@ -214,6 +198,14 @@ module TasqueX
       end
       
       tasks
+    end
+    
+    def all_incomplete_tasks(list_id = nil)
+      [all_tasks_in_list(list_id).find_all { |t| t.completed.to_s.empty? }].flatten.compact
+    end
+    
+    def all_complete_tasks(list_id = nil)
+      [all_tasks_in_list(list_id).find_all { |t| !t.completed.to_s.empty? }].flatten.compact
     end
     
     def add_task(list_id, name)

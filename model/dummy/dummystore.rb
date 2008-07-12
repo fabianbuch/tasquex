@@ -64,7 +64,19 @@ module TasqueX
     end
     
     def all_tasks_in_list(list_id)
-      [@tasks.find { |t| t.list_id == list_id  }].flatten
+      if list_id != nil
+        [@tasks.find_all { |t| t.list_id == list_id  }].flatten.compact
+      else
+        @tasks
+      end
+    end
+    
+    def all_incomplete_tasks(list_id = nil)
+      [all_tasks_in_list(list_id).find_all { |t| t.completed.to_s.empty? }].flatten.compact
+    end
+    
+    def all_complete_tasks(list_id = nil)
+      [all_tasks_in_list(list_id).find_all { |t| !t.completed.to_s.empty? }].flatten.compact
     end
     
     def add_task(list_id, name)
