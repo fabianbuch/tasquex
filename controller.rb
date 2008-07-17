@@ -17,6 +17,7 @@ class Controller < OSX::NSObject
   
   ib_outlet :inputNewTask, :buttonLists, :buttonAddTask, :buttonAuth
   ib_outlet :buttonComplete
+  ib_outlet :buttonSpinner
   ib_outlet :prefsButtonAuthCache, :prefsButtonStore
   
   ib_outlet :lists
@@ -65,6 +66,7 @@ class Controller < OSX::NSObject
   end
   
   def authenticate
+    start_spinning
     
     unless @store.authenticated?
       # open window sheet for authentication
@@ -78,6 +80,17 @@ class Controller < OSX::NSObject
       init_tasks
     end
     
+    stop_spinning
+  end
+  
+  def start_spinning
+    @buttonSpinner.setHidden(false)
+    @buttonSpinner.startAnimation(self)
+  end
+  
+  def stop_spinning
+    @buttonSpinner.stopAnimation(self)
+    @buttonSpinner.setHidden(true)
   end
   
   def openAuthSheet
@@ -94,6 +107,7 @@ class Controller < OSX::NSObject
   end
 
   def authNextButton
+    start_spinning
     
     if @store.authenticated?
     
@@ -113,6 +127,7 @@ class Controller < OSX::NSObject
       
     end
     
+    stop_spinning
   end
   
   def hide_or_show_various_elements
@@ -125,6 +140,7 @@ class Controller < OSX::NSObject
   end
   
   def init_lists
+    start_spinning
     
     lists = @store.all_lists
     lists.each do |list|
@@ -132,18 +148,24 @@ class Controller < OSX::NSObject
       @lists.lastItem.setTag(list.id)
     end
     
+    stop_spinning
   end
   
   def init_tasks
+    start_spinning
+    
     list_id = @lists.selectedItem.tag.to_i==0 ? nil : @lists.selectedItem.tag
     @current_tasks = @store.all_incomplete_tasks(list_id).sort
     
+    stop_spinning
     @tableTasks.reloadData
   end
   
   def switchList
     menu_item = @lists.selectedItem
     @lists.selectItem(menu_item)
+    
+    start_spinning
     
     if menu_item.tag.to_i == 0
       # select all lists
@@ -153,11 +175,16 @@ class Controller < OSX::NSObject
       @current_tasks = @store.all_incomplete_tasks(menu_item.tag).sort
     end
     
+    stop_spinning
+    
     @tableTasks.reloadData
   end
   
   def toggleShowComplete
     list_id = @lists.selectedItem.tag.to_i==0 ? nil : @lists.selectedItem.tag
+    
+    start_spinning
+    
     if @buttonComplete.title.to_s == "Complete"
       @current_tasks = @store.all_incomplete_tasks(list_id).sort
       @buttonComplete.title = "Incomplete"
@@ -166,20 +193,31 @@ class Controller < OSX::NSObject
       @buttonComplete.title = "Complete"
     end
     
+    stop_spinning
+    
     @tableTasks.reloadData
   end
   
   def addTask
     if @inputNewTask.stringValue.to_s.size > 0
+      
+      start_spinning
+      
       @store.add_task(@lists.selectedItem.tag, @inputNewTask.stringValue)
       switchList
+      
+      stop_spinning
     end
   end
   
   def deleteTasks
+    start_spinning
+    
     @tableTasks.selectedRowIndexes.to_a.each do |i|
       @store.delete_task(@current_tasks[i])
     end
+    
+    stop_spinning
     
     switchList
   end
@@ -207,7 +245,13 @@ class Controller < OSX::NSObject
     when "duedate"
       @current_tasks[row].due = value.to_s
     end
+    
+    start_spinning
+    
     @store.edit_task(@current_tasks[row])
+    
+    stop_spinning
+    
     @current_tasks.sort!
     @tableTasks.reloadData
   end
