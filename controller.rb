@@ -246,12 +246,13 @@ class Controller < OSX::NSObject
     when "name"
       @current_tasks[row].name
     when "duedate"
+      completed = @current_tasks[row].completed.to_s.size > 0 ? true : false
       duedate = Date.parse(@current_tasks[row].due.to_s) rescue ""
-      if duedate == Date.parse(Time.now.to_s)
+      if duedate == Date.parse(Time.now.to_s) && !completed
         "Today"
-      elsif duedate == Date.parse(Time.now.to_s) + 1
+      elsif duedate == Date.parse(Time.now.to_s) + 1 && !completed
         "Tomorrow"
-      elsif duedate != "" && duedate < Date.parse(Time.now.to_s)
+      elsif duedate != "" && duedate < Date.parse(Time.now.to_s) && !completed
         "Overdue"
       else
         duedate.to_s
