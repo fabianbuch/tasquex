@@ -128,8 +128,8 @@ module TasqueX
       @persisted_token =  OSX::NSUserDefaultsController.sharedUserDefaultsController.values.valueForKey('rtmtoken').to_s
       
       # provide APP_KEY and SHARED_SECRET for RTM::API
-      RTM::API.init(API_KEY, SHARED_SECRET, {:token => @token_persisted})
-
+      RTM::API.init(API_KEY, SHARED_SECRET, {:token => @persisted_token})
+      
       # get frob
       @frob = RTM::Auth::GetFrob.new.invoke
     end
