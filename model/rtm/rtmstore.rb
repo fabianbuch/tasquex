@@ -147,23 +147,36 @@ module TasqueX
     end
     
     def authenticated?
-      if @authenticated && @persisted_token.empty? && !(RTM::API.token rescue nil)
-        res = RTM::Auth::GetToken.new(@frob).invoke
-        RTM::API.token = res[:token]
-        persist_token(res[:token])
-      elsif !@persisted_token.empty?
-        RTM::API.token = @persisted_token
+      if !@persisted_token.empty?
+        begin
+          RTM::Auth::CheckToken.new(@persisted_token).invoke
+          RTM::API.token = @persisted_token
+          @authenticated = true
+        rescue
+          @persisted_token = ""
+          @authenticated = false
+        end
       else
-        return false
+        if @authenticated
+          res = RTM::Auth::GetToken.new(@frob).invoke
+          RTM::API.token = res[:token]
+          persist_token(res[:token])
+          @authenticated = true
+        else
+          @authenticated = false
+        end
       end
       
-      @authenticated = RTM::API.token ? true : false
+      @authenticated
     end
     
     def persist_token(token)
-        OSX::NSUserDefaultsController.sharedUserDefaultsController.values.setValue_forKey(
+       authCacheEnabled =  OSX::NSUserDefaultsController.sharedUserDefaultsController.values.valueForKey('authCache').to_s
+       if authCacheEnabled == '1'
+         OSX::NSUserDefaultsController.sharedUserDefaultsController.values.setValue_forKey(
           token.to_s, 'rtmtoken' 
         )
+      end
     end
     
     def all_lists
