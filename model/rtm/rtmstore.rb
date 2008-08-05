@@ -203,8 +203,8 @@ module TasqueX
         task.id = r_task.id
         task.chunk_id = r_task.chunks.first.id
         task.priority = r_task.chunks.first.priority.to_i
-        task.due = r_task.chunks.first.due
-        task.completed = r_task.chunks.first.completed
+        task.due = TasqueX::DateTime.parse(r_task.chunks.first.due)
+        task.completed = TasqueX::DateTime.parse(r_task.chunks.first.completed)
         task.list_id = r_task.list
         
         tasks << task
@@ -243,7 +243,7 @@ module TasqueX
       if task.class == Task
         timeline = RTM::Timeline.new(RTM::API.token)
         RTM::Tasks::SetName.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.name).invoke
-        RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due).invoke
+        RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due.to_s).invoke
         RTM::Tasks::SetPriority.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.priority).invoke
         if task.completed.to_s.empty?
           RTM::Tasks::Uncomplete.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id).invoke

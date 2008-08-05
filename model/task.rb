@@ -6,9 +6,9 @@ module TasqueX
     attr_accessor :id
     attr_accessor :chunk_id # for RTM (rtmilk), obsolete for other stores
     attr_accessor :name # String
-    attr_accessor :completed # String of completion date
+    attr_accessor :completed # DateTime of completion date
     attr_accessor :priority # Integer
-    attr_accessor :due # due date
+    attr_accessor :due # DateTime of due date
     
     attr_accessor :list_id
     

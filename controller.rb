@@ -185,12 +185,12 @@ class Controller < OSX::NSObject
     
     start_spinning
     
-    if @buttonComplete.title.to_s == "Complete"
+    if @buttonComplete.selectedSegment == 1
       @current_tasks = @store.all_incomplete_tasks(list_id).sort
-      @buttonComplete.title = "Incomplete"
-    else
+    elsif @buttonComplete.selectedSegment == 2
       @current_tasks = @store.all_complete_tasks(list_id).sort
-      @buttonComplete.title = "Complete"
+    else
+      @current_tasks = @store.all_tasks_in_list(list_id).sort
     end
     
     stop_spinning
@@ -291,17 +291,21 @@ class Controller < OSX::NSObject
       @current_tasks[row].name
     when "duedate"
       completed = @current_tasks[row].completed.to_s.size > 0 ? true : false
-      duedate = Date.parse(@current_tasks[row].due.to_s) rescue ""
-      if duedate == Date.parse(Time.now.to_s) && !completed
-        "Today"
-      elsif duedate == Date.parse(Time.now.to_s) + 1 && !completed
-        "Tomorrow"
-      elsif duedate != "" && duedate < Date.parse(Time.now.to_s) && !completed
-        "Overdue"
-      else
-        duedate.to_s
-      end
+      duedate = @current_tasks[row].due
+      duedate.kind_of?(TasqueX::DateTime) ? duedate.to_pretty_s : duedate.to_s
     end
+  end
+  
+  # for duedate cell
+  def numberOfItemsInComboBoxCell(cell)
+    p TasqueX::DateTime.parse(DateTime.now.strftime).class
+    TasqueX::DateTime.parse(DateTime.now.strftime).sevendays.size
+  end
+  
+  # for duedate cell
+  def comboBoxCell_objectValueForItemAtIndex(cell, index)
+    p TasqueX::DateTime.parse(DateTime.now.strftime).sevendays
+    TasqueX::DateTime.parse(DateTime.now.strftime).sevendays[index.to_i]
   end
 
 end
