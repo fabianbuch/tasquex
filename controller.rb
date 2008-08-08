@@ -204,9 +204,11 @@ class Controller < OSX::NSObject
       start_spinning
       
       @store.add_task(@lists.selectedItem.tag, @inputNewTask.stringValue)
-      switchList
       
       stop_spinning
+      
+      switchList
+      toggleShowComplete
     end
   end
   
@@ -220,6 +222,7 @@ class Controller < OSX::NSObject
     stop_spinning
     
     switchList
+    toggleShowComplete
   end
 
   def openPrefsWindow
