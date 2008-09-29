@@ -243,7 +243,7 @@ module TasqueX
     def edit_task(task)
       if task.class == Task
         timeline = RTM::Timeline.new(RTM::API.token)
-        p task.due.strftime("%FT%T%Z")
+        p task.due.strftime("%FT%T%Z") unless task.due.to_s.empty?
         p task.due
         RTM::Tasks::SetName.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.name).invoke
         RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due.strftime("%FT%T%Z"), true, true).invoke unless task.due.to_s.empty?
