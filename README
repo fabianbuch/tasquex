@@ -3,6 +3,6 @@ A Ruby Cocoa app for task management with modular backend design.
 Currently a dummy backend (mainly for development) and 
 an RTM (Remember the Milk) backend store are available.
 
-TasqueX is inspired by Gnome Tasque.
+TasqueX is inspired by Gnome Tasque where I also stole the icon.
 
 (c) Fabian Buch (fabian@fabian-buch.com)
