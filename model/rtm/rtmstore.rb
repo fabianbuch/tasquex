@@ -49,6 +49,7 @@ module Tasks
 
   class SetDueDate < RTM::API
     def parse_result(result)
+      p result
       super
       [result['list'].first['taskseries'].first, result['transaction'].first]
     end
@@ -203,8 +204,8 @@ module TasqueX
         task.id = r_task.id
         task.chunk_id = r_task.chunks.first.id
         task.priority = r_task.chunks.first.priority.to_i
-        task.due = TasqueX::DateTime.parse(r_task.chunks.first.due)
-        task.completed = TasqueX::DateTime.parse(r_task.chunks.first.completed)
+        task.due = TasqueX::DateTime.parse(r_task.chunks.first.due.to_s) unless r_task.chunks.first.due.to_s.empty?
+        task.completed = TasqueX::DateTime.parse(r_task.chunks.first.completed.to_s) unless r_task.chunks.first.completed.to_s.empty?
         task.list_id = r_task.list
         
         tasks << task
@@ -242,8 +243,10 @@ module TasqueX
     def edit_task(task)
       if task.class == Task
         timeline = RTM::Timeline.new(RTM::API.token)
+        p task.due.strftime("%FT%T%Z")
+        p task.due
         RTM::Tasks::SetName.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.name).invoke
-        RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due.to_s).invoke
+        RTM::Tasks::SetDueDate.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.due.strftime("%FT%T%Z"), true, true).invoke unless task.due.to_s.empty?
         RTM::Tasks::SetPriority.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id, task.priority).invoke
         if task.completed.to_s.empty?
           RTM::Tasks::Uncomplete.new(RTM::API.token, timeline, task.list_id, task.id, task.chunk_id).invoke

@@ -246,7 +246,7 @@ class Controller < OSX::NSObject
     when "name"
       @current_tasks[row].name = value.to_s
     when "duedate"
-      @current_tasks[row].due = value.to_s
+      @current_tasks[row].due = TasqueX::DateTime.parse(value.to_s)
     end
     
     start_spinning
